@@ -30,13 +30,43 @@
     }
     
     function redirectToWhatsApp() {
-      // Primary WhatsApp deep link
-      window.location.href = "https://wa.me/message/PL6RL7PR33N7G1";
+      const phoneNumber = "919021915194";
+      const message = encodeURIComponent("hello how are u");
+      const device = getDeviceInfo();
       
-      // Fallback for desktop users
-      setTimeout(function() {
-        window.location.href = "https://web.whatsapp.com/send?phone=PL6RL7PR33N7G1";
-      }, 1500);
+      // Primary wa.me link (works universally)
+      const waLink = `https://wa.me/${phoneNumber}?text=${message}`;
+      
+      // App deep link for mobile
+      const appLink = `whatsapp://send?phone=${phoneNumber}&text=${message}`;
+      
+      console.log('Device info:', device); // For debugging
+      
+      if (device.isMobile) {
+        // Mobile strategy: Try app first, then fallback
+        if (device.isIOS) {
+          // iOS: Direct redirect to wa.me (handles app/web intelligently)
+          window.location.href = waLink;
+        } else if (device.isAndroid) {
+          // Android: Try intent first, then wa.me
+          const intentLink = `intent://send?phone=${phoneNumber}&text=${message}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
+          
+          // Try multiple methods for Android
+          try {
+            window.location.href = intentLink;
+            // Fallback after 1 second
+            setTimeout(() => window.location.href = waLink, 1000);
+          } catch (e) {
+            window.location.href = waLink;
+          }
+        } else {
+          // Other mobile: wa.me link
+          window.location.href = waLink;
+        }
+      } else {
+        // Desktop: wa.me link (opens WhatsApp Web)
+        window.location.href = waLink;
+      }
     }
   </script>
   <noscript>
@@ -176,6 +206,19 @@
   <footer>&copy; 2024 Color Prediction Network</footer>
 
   <script>
+    // Enhanced device detection
+    function getDeviceInfo() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return {
+        isMobile: /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent),
+        isAndroid: /android/i.test(userAgent),
+        isIOS: /iphone|ipad|ipod/i.test(userAgent),
+        isChrome: /chrome/i.test(userAgent),
+        isSafari: /safari/i.test(userAgent) && !/chrome/i.test(userAgent),
+        isFirefox: /firefox/i.test(userAgent)
+      };
+    }
+
     // Auto-redirect after 3 seconds with tracking
     setTimeout(function() {
       fbq('track', 'ViewContent', {
@@ -184,6 +227,17 @@
       });
       redirectToWhatsApp();
     }, 3000);
+
+    // Add click handler for immediate testing
+    document.addEventListener('DOMContentLoaded', function() {
+      const button = document.querySelector('.button');
+      if (button) {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          trackWhatsAppJoin();
+        });
+      }
+    });
   </script>
 </body>
 </html>
